@@ -251,6 +251,49 @@ class Resource(BASE, HeatBase, StateAware):
     properties_data = sqlalchemy.Column('properties_data', Json)
 
 
+class ResourcePropertiesObserved(BASE, HeatBase):
+    """Store of resource properties polled by the observer."""
+
+    __tablename__ = 'resource_properties_observed'
+
+    id = sqlalchemy.Column('id', sqlalchemy.String(36), primary_key=True,
+                           default=lambda: str(uuid.uuid4()))
+    stack_id = sqlalchemy.Column('stack_id',
+                                 sqlalchemy.String(36),
+                                 sqlalchemy.ForeignKey('stack.id'),
+                                 nullable=False)
+    resource_observed_id = sqlalchemy.Column(
+        'resource_observed_id',
+        sqlalchemy.String(36),
+        sqlalchemy.ForeignKey('resource_observed.id'),
+        nullable=False)
+    resource_name = sqlalchemy.Column('resource_name',
+                                      sqlalchemy.String(255),
+                                      nullable=True)
+    prop_name = sqlalchemy.Column('prop_name', sqlalchemy.String)
+    prop_value = sqlalchemy.Column('prop_value', sqlalchemy.String)
+
+
+class ResourceObserved(BASE, HeatBase):
+    """Store of resource specific data polled by the observer."""
+
+    __tablename__ = 'resource_observed'
+
+    id = sqlalchemy.Column('id', sqlalchemy.String(36), primary_key=True,
+                           default=lambda: str(uuid.uuid4()))
+    name = sqlalchemy.Column('name', sqlalchemy.String(255), nullable=True)
+    nova_instance = sqlalchemy.Column('nova_instance', sqlalchemy.String(255))
+    stack_id = sqlalchemy.Column('stack_id',
+                                 sqlalchemy.String(36),
+                                 sqlalchemy.ForeignKey('stack.id'),
+                                 nullable=False)
+    stack = relationship(Stack, backref=backref('resources_observed'))
+    properties_observed = relationship(ResourcePropertiesObserved,
+                                       cascade="all,delete",
+                                       backref=backref('resource_observed'))
+    updated_at = sqlalchemy.Column(sqlalchemy.DateTime)
+
+
 class WatchRule(BASE, HeatBase):
     """Represents a watch_rule created by the heat engine."""
 

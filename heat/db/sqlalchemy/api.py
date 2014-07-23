@@ -792,6 +792,73 @@ def snapshot_get_all(context, stack_id):
         stack_id=stack_id, tenant=context.tenant_id)
 
 
+def resource_observed_create(context, values):
+    obj_ref = models.ResourceObserved()
+    obj_ref.update(values)
+    obj_ref.save(_session(context))
+    return obj_ref
+
+
+def resource_observed_get(context, resource_observed_id):
+    result = model_query(context, models.ResourceObserved).get(
+        resource_observed_id)
+
+    if not result:
+        raise exception.NotFound(_('Observed resource with id %s not found') %
+                                 resource_observed_id)
+    return result
+
+
+def resource_observed_delete(context, resource_observed_id):
+    resource_observed = resource_observed_get(context, resource_observed_id)
+    session = Session.object_session(resource_observed)
+    session.delete(resource_observed)
+    session.flush()
+
+
+def resource_properties_observed_create(context, values):
+    obj_ref = models.ResourcePropertiesObserved()
+    obj_ref.update(values)
+    obj_ref.save(_session(context))
+    return obj_ref
+
+
+def resource_properties_observed_get(context, resource_properties_observed_id):
+    result = model_query(context, models.ResourcePropertiesObserved).get(
+        resource_properties_observed_id)
+
+    if not result:
+        raise exception.NotFound(_('Observed resource property with id %s not '
+                                   'found') % resource_properties_observed_id)
+    return result
+
+
+def resource_properties_observed_get_all_by_stack(context, stack_id):
+    results = model_query(context, models.ResourcePropertiesObserved).\
+        filter_by(stack_id=stack_id).all()
+
+    return results
+
+
+def resource_properties_observed_update(context,
+                                        resource_properties_observed_id,
+                                        values):
+    resource_prop_observed = resource_properties_observed_get(
+        context, resource_properties_observed_id)
+    resource_prop_observed.update(values)
+    resource_prop_observed.save(_session(context))
+    return resource_prop_observed
+
+
+def resource_properties_observed_delete(context,
+                                        resource_properties_observed_id):
+    resource_prop_observed = resource_properties_observed_get(
+        context, resource_properties_observed_id)
+    session = Session.object_session(resource_prop_observed)
+    session.delete(resource_prop_observed)
+    session.flush()
+
+
 def purge_deleted(age, granularity='days'):
     try:
         age = int(age)

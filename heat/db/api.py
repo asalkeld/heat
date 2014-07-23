@@ -301,6 +301,45 @@ def snapshot_get_all(context, stack_id):
     return IMPL.snapshot_get_all(context, stack_id)
 
 
+def resource_observed_create(context, values):
+    return IMPL.resource_observed_create(context, values)
+
+
+def resource_observed_get(context, resource_observed_id):
+    return IMPL.resource_observed_get(context, resource_observed_id)
+
+
+def resource_observed_delete(context, resource_observed_id):
+    return IMPL.resource_observed_delete(context, resource_observed_id)
+
+
+def resource_properties_observed_create(context, values):
+    return IMPL.resource_properties_observed_create(context, values)
+
+
+def resource_properties_observed_get(context, resource_properties_observed_id):
+    return IMPL.resource_properties_observed_get(
+        context, resource_properties_observed_id)
+
+
+def resource_properties_observed_get_all_by_stack(context, stack_id):
+    return IMPL.resource_properties_observed_get_all_by_stack(
+        context, stack_id)
+
+
+def resource_properties_observed_update(context,
+                                        resource_properties_observed_id,
+                                        values):
+    return IMPL.resource_properties_observed_update(
+        context, resource_properties_observed_id, values)
+
+
+def resource_properties_observed_delete(context,
+                                        resource_properties_observed_id):
+    return IMPL.resource_properties_observed_delete(
+        context, resource_properties_observed_id)
+
+
 def db_sync(engine, version=None):
     """Migrate the database to `version` or the most recent version."""
     return IMPL.db_sync(engine, version=version)

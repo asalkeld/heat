@@ -1157,6 +1157,27 @@ def create_watch_data(ctx, watch_rule, **kwargs):
     return db_api.watch_data_create(ctx, values)
 
 
+def create_resource_observed(ctx, stack, **kwargs):
+    values = {
+        'name': 'test_resource_observed',
+        'nova_instance': UUID1,
+        'stack_id': stack.id
+    }
+    values.update(kwargs)
+    return db_api.resource_observed_create(ctx, values)
+
+
+def create_resource_properties_observed(ctx, stack, kwargs):
+    res_obs = create_resource_observed(ctx, stack)
+    values = {
+        'resource_name': 'test_resource_properties_observed',
+        'stack_id': stack.id,
+        'resource_observed_id': res_obs.id
+    }
+    values.update(kwargs)
+    return db_api.resource_properties_observed_create(ctx, values)
+
+
 class DBAPIRawTemplateTest(HeatTestCase):
     def setUp(self):
         super(DBAPIRawTemplateTest, self).setUp()
@@ -1574,6 +1595,132 @@ class DBAPIResourceTest(HeatTestCase):
                               status_reason='a' * 1024)
         ret_res = db_api.resource_get(self.ctx, res.id)
         self.assertEqual('a' * 255, ret_res.status_reason)
+
+    def test_resource_observed_create(self):
+        res_obs = create_resource_observed(self.ctx, self.stack)
+        ret_res_obs = db_api.resource_observed_get(self.ctx, res_obs.id)
+        self.assertIsNotNone(ret_res_obs)
+        self.assertEqual('test_resource_observed', ret_res_obs.name)
+        self.assertEqual(UUID1, ret_res_obs.nova_instance)
+        self.assertEqual(self.stack.id, ret_res_obs.stack_id)
+
+    def test_resource_observed_get(self):
+        res_obs = create_resource_observed(self.ctx, self.stack)
+        ret_res_obs = db_api.resource_observed_get(self.ctx, res_obs.id)
+        self.assertIsNotNone(ret_res_obs)
+
+        self.assertRaises(exception.NotFound, db_api.resource_observed_get,
+                          self.ctx, UUID2)
+
+    def test_resource_observed_delete(self):
+        res_obs = create_resource_observed(self.ctx, self.stack)
+        ret_res_obs = db_api.resource_observed_get(self.ctx, res_obs.id)
+        self.assertIsNotNone(ret_res_obs)
+        self.assertEqual('test_resource_observed', ret_res_obs.name)
+
+        db_api.resource_observed_delete(self.ctx, res_obs.id)
+        self.assertRaises(exception.NotFound, db_api.resource_observed_get,
+                          self.ctx, res_obs.id)
+        self.assertRaises(exception.NotFound, db_api.resource_observed_delete,
+                          self.ctx, res_obs.id)
+
+    def test_resource_properties_observed_create(self):
+        props = {'prop_name': 'vm_state', 'prop_value': 'active'}
+        res_prop = create_resource_properties_observed(self.ctx,
+                                                       self.stack,
+                                                       props)
+        ret_prop = db_api.resource_properties_observed_get(self.ctx,
+                                                           res_prop.id)
+        self.assertIsNotNone(ret_prop)
+        self.assertEqual('test_resource_properties_observed',
+                         ret_prop.resource_name)
+        self.assertEqual(props['prop_name'], ret_prop.prop_name)
+        self.assertEqual(props['prop_value'], ret_prop.prop_value)
+
+    def test_resource_properties_observed_get(self):
+        props = {'prop_name': 'vm_state', 'prop_value': 'active'}
+        res_prop = create_resource_properties_observed(self.ctx,
+                                                       self.stack,
+                                                       props)
+        ret_prop = db_api.resource_properties_observed_get(self.ctx,
+                                                           res_prop.id)
+        self.assertIsNotNone(ret_prop)
+
+        self.assertRaises(exception.NotFound,
+                          db_api.resource_properties_observed_get,
+                          self.ctx, UUID2)
+
+    def test_resource_properties_observed_get_all_by_stack(self):
+        stack_props = []
+        for value in ('active', 'paused', 'deleted'):
+            props = {'prop_name': 'vm_state', 'prop_value': value}
+            stack_props.append(create_resource_properties_observed(
+                self.ctx, self.stack, props))
+
+        stack2 = create_stack(self.ctx, self.template, self.user_creds,
+                              name='stack2')
+        props = {'prop_name': 'vm_state', 'prop_value': 'error'}
+        create_resource_properties_observed(self.ctx, stack2, props)
+
+        ret_props = db_api.resource_properties_observed_get_all_by_stack(
+            self.ctx, self.stack.id)
+        self.assertIsNotNone(ret_props)
+        self.assertEqual(len(stack_props), len(ret_props))
+        for prop in stack_props:
+            found = False
+            for ret in ret_props:
+                if (ret['prop_name'] == prop['prop_name'] and
+                        ret['prop_value'] == prop['prop_value']):
+                    found = True
+                    break
+            self.assertTrue(found)
+
+        ret_props = db_api.resource_properties_observed_get_all_by_stack(
+            self.ctx, UUID2)
+        self.assertEqual(0, len(ret_props))
+
+    def test_resource_observed_update(self):
+        props = {'prop_name': 'vm_state', 'prop_value': 'active'}
+        res_prop = create_resource_properties_observed(self.ctx,
+                                                       self.stack,
+                                                       props)
+        ret_prop = db_api.resource_properties_observed_get(self.ctx,
+                                                           res_prop.id)
+        self.assertIsNotNone(ret_prop)
+        self.assertEqual('test_resource_properties_observed',
+                         ret_prop.resource_name)
+        self.assertEqual(props['prop_name'], ret_prop.prop_name)
+        self.assertEqual(props['prop_value'], ret_prop.prop_value)
+
+        new_props = {'prop_value': 'stopped'}
+        update_prop = db_api.resource_properties_observed_update(self.ctx,
+                                                                 res_prop.id,
+                                                                 new_props)
+        self.assertIsNotNone(update_prop)
+        self.assertEqual(props['prop_name'], update_prop.prop_name)
+        self.assertEqual(new_props['prop_value'], update_prop.prop_value)
+
+        ret_prop = db_api.resource_properties_observed_get(self.ctx,
+                                                           res_prop.id)
+        self.assertIsNotNone(ret_prop)
+        self.assertEqual(props['prop_name'], ret_prop.prop_name)
+        self.assertEqual(new_props['prop_value'], ret_prop.prop_value)
+
+    def test_resource_properties_observed_delete(self):
+        props = {'prop_name': 'vm_state', 'prop_value': 'active'}
+        res_prop = create_resource_properties_observed(self.ctx,
+                                                       self.stack,
+                                                       props)
+        ret_prop = db_api.resource_properties_observed_get(self.ctx,
+                                                           res_prop.id)
+        self.assertIsNotNone(ret_prop)
+        self.assertEqual('test_resource_properties_observed',
+                         ret_prop.resource_name)
+
+        db_api.resource_properties_observed_delete(self.ctx, res_prop.id)
+        self.assertRaises(exception.NotFound,
+                          db_api.resource_properties_observed_get,
+                          self.ctx, res_prop.id)
 
 
 class DBAPIStackLockTest(HeatTestCase):
