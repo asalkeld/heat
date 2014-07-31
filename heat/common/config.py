@@ -79,7 +79,10 @@ service_opts = [
                help='Maximum depth allowed when using nested stacks.'),
     cfg.IntOpt('num_engine_workers',
                default=1,
-               help='Number of heat-engine processes to fork and run.')]
+               help='Number of heat-engine processes to fork and run.'),
+    cfg.IntOpt('num_observer_workers',
+               default=1,
+               help='Number of heat-observer processes to fork and run')]
 
 engine_opts = [
     cfg.StrOpt('instance_user',

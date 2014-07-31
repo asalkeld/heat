@@ -516,3 +516,78 @@ class EngineClient(object):
     def stack_list_snapshots(self, cnxt, stack_identity):
         return self.call(cnxt, self.make_msg('stack_list_snapshots',
                                              stack_identity=stack_identity))
+
+
+class ObserverClient(object):
+    '''Client side of the heat observer rpc API.
+
+    API version history::
+
+    1.0 - Initial version.
+    '''
+
+    BASE_RPC_API_VERSION = '1.0'
+
+    def __init__(self):
+        self._client = messaging.get_rpc_client(
+            topic=api.OBSERVER_TOPIC,
+            version=self.BASE_RPC_API_VERSION)
+
+    @staticmethod
+    def make_msg(method, **kwargs):
+        return method, kwargs
+
+    def call(self, ctxt, msg, version=None):
+        method, kwargs = msg
+        if version is not None:
+            client = self._client.prepare(version=version)
+        else:
+            client = self._client
+        return client.call(ctxt, method, **kwargs)
+
+    def cast(self, ctxt, msg, version=None):
+        method, kwargs = msg
+        if version is not None:
+            client = self._client.prepare(version=version)
+        else:
+            client = self._client
+        return client.cast(ctxt, method, **kwargs)
+
+    def create_observed_resource(self, cnxt, values):
+        return self.call(cnxt, self.make_msg('create_observed_resource',
+                                             values=values))
+
+    def get_observed_resource(self, cnxt, resource_observed_id):
+        return self.call(cnxt, self.make_msg('get_observed_resource',
+                         resource_observed_id=resource_observed_id))
+
+    def delete_observed_resource(self, cnxt, resource_observed_id):
+        return self.call(cnxt, self.make_msg('delete_observed_resource',
+                         resource_observed_id=resource_observed_id))
+
+    def create_observed_resource_properties(self, cnxt, values):
+        return self.call(cnxt,
+                         self.make_msg('create_observed_resource_properties',
+                         values=values))
+
+    def get_observed_resource_properties(self, cnxt,
+                                         resource_properties_observed_id):
+        return self.call(cnxt,
+                         self.make_msg('get_observed_resource_properties',
+                         resource_properties_observed_id=
+                         resource_properties_observed_id))
+
+    def update_observed_resource_properties(self, cnxt,
+                                            resource_properties_observed_id,
+                                            values):
+        return self.call(cnxt,
+                         self.make_msg('update_observed_resource_properties',
+                         resource_properties_observed_id=
+                         resource_properties_observed_id))
+
+    def delete_observed_resource_properties(self, cnxt,
+                                            resource_properties_observed_id):
+        return self.call(cnxt,
+                         self.make_msg('delete_observed_resource_properties',
+                         resource_properties_observed_id=
+                         resource_properties_observed_id))

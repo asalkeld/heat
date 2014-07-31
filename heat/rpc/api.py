@@ -12,6 +12,7 @@
 #    under the License.
 
 ENGINE_TOPIC = 'engine'
+OBSERVER_TOPIC = 'observer'
 
 PARAM_KEYS = (
     PARAM_TIMEOUT, PARAM_DISABLE_ROLLBACK, PARAM_ADOPT_STACK_DATA,
