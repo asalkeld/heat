@@ -445,7 +445,8 @@ class StackServiceCreateUpdateDeleteTest(HeatTestCase):
         templatem.Template(template, files=None).AndReturn(stack.t)
         environment.Environment(params).AndReturn(stack.env)
         parser.Stack(self.ctx, stack.name,
-                     stack.t, stack.env, owner_id=None).AndReturn(stack)
+                     stack.t, stack.env, owner_id=None,
+                     nested_depth=0).AndReturn(stack)
 
         self.m.StubOutWithMock(stack, 'validate')
         stack.validate().AndReturn(None)
@@ -496,7 +497,7 @@ class StackServiceCreateUpdateDeleteTest(HeatTestCase):
         parser.Stack(self.ctx, stack.name,
                      stack.t,
                      stack.env,
-                     owner_id=None).AndReturn(stack)
+                     owner_id=None, nested_depth=0).AndReturn(stack)
 
         self.m.StubOutWithMock(stack, 'validate')
         stack.validate().AndRaise(exception.StackValidationFailed(
@@ -551,12 +552,14 @@ class StackServiceCreateUpdateDeleteTest(HeatTestCase):
         templatem.Template(template, files=None).AndReturn(stack.t)
         environment.Environment(params).AndReturn(stack.env)
         parser.Stack(ctx_no_pwd, stack.name,
-                     stack.t, stack.env, owner_id=None).AndReturn(stack)
+                     stack.t, stack.env, owner_id=None,
+                     nested_depth=0).AndReturn(stack)
 
         templatem.Template(template, files=None).AndReturn(stack.t)
         environment.Environment(params).AndReturn(stack.env)
         parser.Stack(ctx_no_user, stack.name,
-                     stack.t, stack.env, owner_id=None).AndReturn(stack)
+                     stack.t, stack.env, owner_id=None,
+                     nested_depth=0).AndReturn(stack)
 
         self.m.ReplayAll()
 
@@ -602,7 +605,8 @@ class StackServiceCreateUpdateDeleteTest(HeatTestCase):
         parser.Stack(self.ctx, stack.name,
                      stack.t,
                      stack.env,
-                     owner_id=None).AndReturn(stack)
+                     owner_id=None,
+                     nested_depth=0).AndReturn(stack)
 
         self.m.ReplayAll()
 
