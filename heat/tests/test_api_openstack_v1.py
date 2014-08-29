@@ -706,7 +706,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(dict(identity))
         self.m.ReplayAll()
 
@@ -746,7 +747,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(dict(identity))
         self.m.ReplayAll()
 
@@ -786,7 +788,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(to_remote_error(AttributeError()))
         rpc_client.EngineClient.call(
             req.context,
@@ -799,7 +802,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(to_remote_error(unknown_parameter))
         rpc_client.EngineClient.call(
             req.context,
@@ -812,7 +816,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(to_remote_error(missing_parameter))
         self.m.ReplayAll()
         resp = request_with_middleware(fault.FaultWrapper,
@@ -862,7 +867,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(to_remote_error(error))
         self.m.ReplayAll()
 
@@ -918,7 +924,8 @@ class StackControllerTest(ControllerTest, HeatTestCase):
               'args': {'timeout_mins': 30},
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(to_remote_error(error))
         self.m.ReplayAll()
 

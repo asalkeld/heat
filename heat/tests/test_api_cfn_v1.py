@@ -514,7 +514,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(engine_resp)
 
         self.m.ReplayAll()
@@ -563,7 +564,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(engine_resp)
 
         self.m.ReplayAll()
@@ -612,7 +614,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(engine_resp)
 
         self.m.ReplayAll()
@@ -661,7 +664,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(engine_resp)
 
         self.m.ReplayAll()
@@ -710,7 +714,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndReturn(engine_resp)
 
         self.m.ReplayAll()
@@ -797,7 +802,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(AttributeError())
 
         policy.Enforcer.enforce(dummy_req.context, 'CreateStack'
@@ -812,7 +818,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(heat_exception.UnknownUserParameter(key='test'))
 
         policy.Enforcer.enforce(dummy_req.context, 'CreateStack'
@@ -827,7 +834,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(heat_exception.UserParameterMissing(key='test'))
 
         self.m.ReplayAll()
@@ -869,7 +877,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(heat_exception.StackExists(stack_name='test'))
 
         self.m.ReplayAll()
@@ -905,7 +914,8 @@ class CfnStackControllerTest(HeatTestCase):
               'args': engine_args,
               'owner_id': None,
               'nested_depth': 0,
-              'user_creds_id': None})
+              'user_creds_id': None,
+              'stack_user_project_id': None})
         ).AndRaise(heat_exception.StackValidationFailed(
             message='Something went wrong'))
 

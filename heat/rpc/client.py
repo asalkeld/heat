@@ -160,7 +160,8 @@ class EngineClient(object):
                                   args)
 
     def _create_stack(self, ctxt, stack_name, template, params, files, args,
-                      owner_id=None, nested_depth=0, user_creds_id=None):
+                      owner_id=None, nested_depth=0, user_creds_id=None,
+                      stack_user_project_id=None):
         """
         Internal create_stack interface for engine-to-engine communication via
         RPC.  Allows some additional options which should not be exposed to
@@ -168,14 +169,16 @@ class EngineClient(object):
         :param owner_id: parent stack ID for nested stacks
         :param nested_depth: nested depth for nested stacks
         :param user_creds_id: user_creds record for nested stack
+        :param stack_user_project_id: stack user project for nested stack
         """
-        return self.call(ctxt,
-                         self.make_msg('create_stack', stack_name=stack_name,
-                                       template=template,
-                                       params=params, files=files, args=args,
-                                       owner_id=owner_id,
-                                       nested_depth=nested_depth,
-                                       user_creds_id=user_creds_id))
+        return self.call(
+            ctxt, self.make_msg('create_stack', stack_name=stack_name,
+                                template=template,
+                                params=params, files=files, args=args,
+                                owner_id=owner_id,
+                                nested_depth=nested_depth,
+                                user_creds_id=user_creds_id,
+                                stack_user_project_id=stack_user_project_id))
 
     def update_stack(self, ctxt, stack_identity, template, params,
                      files, args):
