@@ -27,16 +27,20 @@ def resource_templates(old_resources, resource_definition,
     old_resources = old_resources[-num_resources:]
     num_create = num_resources - len(old_resources)
     num_replace -= num_create
+    print "SHDEBUG resource_templates num_resources=%s" % num_resources
 
     for i in range(num_resources):
         if i < len(old_resources):
             old_name, old_template = old_resources[i]
             if old_template != resource_definition and num_replace > 0:
                 num_replace -= 1
+                print "SHDEBUG yield old_name=%s" % old_name
                 yield old_name, resource_definition
             else:
+                print "SHDEBUG yield old_name=%s" % old_name
                 yield old_name, old_template
         else:
+            print "SHDEBUG yield new"
             yield short_id.generate_id(), resource_definition
 
 

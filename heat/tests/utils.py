@@ -83,13 +83,17 @@ def dummy_context(user='test_username', tenant_id='test_tenant_id',
 
 
 def parse_stack(t, params=None, stack_name='test_stack', stack_id=None,
-                timeout_mins=None):
+                timeout_mins=None, ctx=None, owner_id=None,
+                user_creds_id=None, nested_depth=0):
     params = params or {}
-    ctx = dummy_context()
+    ctx = ctx or dummy_context()
     templ = template.Template(t)
     stack = parser.Stack(ctx, stack_name, templ,
                          environment.Environment(params), stack_id,
-                         timeout_mins=timeout_mins)
+                         timeout_mins=timeout_mins,
+                         owner_id=owner_id,
+                         user_creds_id=user_creds_id,
+                         nested_depth=nested_depth)
     stack.store()
 
     return stack

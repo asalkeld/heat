@@ -25,6 +25,8 @@ import warnings
 
 from heat.common import context
 from heat.common import exception
+from heat.common import identifier
+from heat.common import short_id
 from heat.common import template_format
 from heat.common import urlfetch
 import heat.db.api as db_api
@@ -42,6 +44,7 @@ from heat.engine import resource
 from heat.engine import rsrc_defn
 from heat.engine import scheduler
 from heat.engine import template
+from heat.rpc import client as rpc_client
 from heat.tests.common import HeatTestCase
 from heat.tests.fakes import FakeKeystoneClient
 from heat.tests import generic_resource as generic_rsrc
@@ -1058,10 +1061,53 @@ class StackTest(HeatTestCase):
                 'B': {'Type': 'GenericResourceType'}}}
         self.m.StubOutWithMock(urlfetch, 'get')
         urlfetch.get('http://server.test/nested.json').AndReturn(nested_tpl)
+        self.m.StubOutWithMock(short_id, 'get_id')
+        physid_suffix = 'xyz0'
+        short_id.get_id(IgnoreArg()).AndReturn(physid_suffix)
         self.m.ReplayAll()
         self.stack = parser.Stack(self.ctx, 'test_stack', parser.Template(tpl),
                                   status_reason=name)
         self.stack.store()
+
+        # Because the nested stack creation via RPC is stubbed, we
+        # create the nested stack record in the DB directly, or the
+        # subsequent instrospection via nested() won't work
+        self.n_stack_name = 'test_stack-A-xyz0'
+        params = {}
+        n_tpl  = template_format.parse(nested_tpl)
+        self.nested_stack = utils.parse_stack(
+            n_tpl, params, self.n_stack_name,
+            ctx=self.ctx, owner_id=self.stack.id,
+            user_creds_id=self.stack.user_creds_id,
+            nested_depth=1)
+        self.nested_stack.state_set(parser.Stack.CREATE,
+                                        parser.Stack.COMPLETE,
+                                        'create complete')
+        identity = identifier.HeatIdentifier(self.ctx.tenant,
+                                             self.n_stack_name,
+                                             self.nested_stack.id)
+
+        args = {'disable_rollback': True, 'adopt_stack_data': None,
+                'timeout_mins': None}
+
+        rpc_params = {'parameters': params,
+                      'resource_registry': {'resources': {}}}
+        self.m.StubOutWithMock(rpc_client.EngineClient, 'call')
+        rpc_client.EngineClient.call(
+            self.ctx,
+            ('create_stack',
+             {'stack_name': self.n_stack_name,
+              'template': n_tpl,
+              'params': rpc_params,
+              'files': {},
+              'args': args,
+              'owner_id': self.stack.id,
+              'stack_user_project_id': self.stack.stack_user_project_id,
+              'nested_depth': 1,
+              'user_creds_id': self.stack.user_creds_id})
+        ).AndReturn(dict(identity))
+
+        self.m.ReplayAll()
         self.stack.create()
 
     def test_total_resources_nested(self):
@@ -1700,12 +1746,13 @@ class StackTest(HeatTestCase):
         self.m.VerifyAll()
 
     def _get_stack_to_check(self, name):
+        self._setup_nested(name)
+
         def _mock_check(res):
             res.handle_check = mock.Mock()
             if hasattr(res, 'nested'):
                 [_mock_check(r) for r in res.nested().resources.values()]
 
-        self._setup_nested(name)
         [_mock_check(res) for res in self.stack.resources.values()]
         return self.stack
 
@@ -1724,6 +1771,7 @@ class StackTest(HeatTestCase):
             res.handle_check = mock.Mock()
 
         self._setup_nested('check-nested-stack')
+        self.addCleanup(self.m.VerifyAll)
         nested = self.stack['A'].nested()
         [_mock_check(res) for res in nested.resources.values()]
         self.stack.check()
@@ -1742,17 +1790,17 @@ class StackTest(HeatTestCase):
         self.assertIn('not fully supported', stack.status_reason)
 
     def test_check_fail(self):
-        stack = self._get_stack_to_check('check-fail')
-        stack['A'].handle_check.side_effect = Exception('fail-A')
-        stack['B'].handle_check.side_effect = Exception('fail-B')
-        stack.check()
+        self._get_stack_to_check('check-fail')
+        self.stack['A'].handle_check.side_effect = Exception('fail-A')
+        self.stack['B'].handle_check.side_effect = Exception('fail-B')
+        self.stack.check()
 
-        self.assertEqual(stack.FAILED, stack.status)
-        self.assertEqual(stack.CHECK, stack.action)
-        self.assertTrue(stack['A'].handle_check.called)
-        self.assertTrue(stack['B'].handle_check.called)
-        self.assertIn('fail-A', stack.status_reason)
-        self.assertIn('fail-B', stack.status_reason)
+        self.assertEqual(self.stack.FAILED, self.stack.status)
+        self.assertEqual(self.stack.CHECK, self.stack.action)
+        self.assertTrue(self.stack['A'].handle_check.called)
+        self.assertTrue(self.stack['B'].handle_check.called)
+        self.assertIn('fail-A', self.stack.status_reason)
+        self.assertIn('fail-B', self.stack.status_reason)
 
     def test_delete_rollback(self):
         self.stack = parser.Stack(self.ctx, 'delete_rollback_test',

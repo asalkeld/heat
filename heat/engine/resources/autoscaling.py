@@ -376,10 +376,12 @@ class InstanceGroup(stack_resource.StackResource):
 
         When shrinking, the oldest instances will be removed.
         """
+        print "SHDEBUG in resize, new_capacity=%s" % new_capacity
         new_template = self._create_template(new_capacity)
         try:
             updater = self.update_with_template(new_template,
                                                 self._environment())
+            print "SHDEBUG got updater=%s" % updater
             updater.run_to_completion()
             self.check_update_complete(updater)
         finally:

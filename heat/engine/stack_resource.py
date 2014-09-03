@@ -15,6 +15,7 @@ from oslo.config import cfg
 
 from heat.common import environment_format
 from heat.common import exception
+from heat.common import identifier
 from heat.engine import attributes
 from heat.engine import environment
 from heat.engine import parser
@@ -23,6 +24,9 @@ from heat.engine import scheduler
 from heat.engine import template
 from heat.openstack.common.gettextutils import _
 from heat.openstack.common import log as logging
+from heat.rpc import api as engine_api
+from heat.rpc import client as rpc_client
+
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +44,14 @@ class StackResource(resource.Resource):
 
     def __init__(self, name, json_snippet, stack):
         super(StackResource, self).__init__(name, json_snippet, stack)
+        self._engine_client = None
         self._nested = None
+
+    @property
+    def engine_client(self):
+        if self._engine_client is None:
+            self._engine_client = rpc_client.EngineClient()
+        return self._engine_client
 
     def _outputs_to_attribs(self, json_snippet):
         outputs = json_snippet.get('Outputs')
@@ -62,6 +73,7 @@ class StackResource(resource.Resource):
             self._nested = None
 
         if self._nested is None and self.resource_id is not None:
+            print "SHDEBUG loading nested resource_id=%s, context=%s" % (self.resource_id, self.context)
             self._nested = parser.Stack.load(self.context,
                                              self.resource_id,
                                              parent_resource=self,
@@ -175,43 +187,54 @@ class StackResource(resource.Resource):
 
         # Note we disable rollback for nested stacks, since they
         # should be rolled back by the parent stack on failure
+        nested_env = self._nested_environment(user_params).user_env_as_dict()
+        args = {engine_api.PARAM_TIMEOUT: timeout_mins,
+                engine_api.PARAM_DISABLE_ROLLBACK: True,
+                engine_api.PARAM_ADOPT_STACK_DATA: adopt_data}
         new_nested_depth = self.stack.nested_depth + 1
-        nested = parser.Stack(self.context,
+        result = self.engine_client._create_stack(self.context,
                               self.physical_resource_name(),
-                              templ,
-                              self._nested_environment(user_params),
-                              timeout_mins=timeout_mins,
-                              disable_rollback=True,
-                              parent_resource=self,
+                              templ.t,
+                              nested_env,
+                              templ.files,
+                              args,
                               owner_id=self.stack.id,
                               user_creds_id=self.stack.user_creds_id,
-                              adopt_stack_data=adopt_data,
                               stack_user_project_id=stack_user_project_id,
                               nested_depth=new_nested_depth)
-        nested.validate()
-        self._nested = nested
-        nested_id = self._nested.store()
-        self.resource_id_set(nested_id)
+        print "SHDEBUG result=%s" % result
+        print "SHDEBUG setting resource_id=%s" % result['stack_id']
+        self.resource_id_set(result['stack_id'])
 
-        action = self._nested.CREATE
-        if adopt_data:
-            action = self._nested.ADOPT
+    def check_create_complete(self, cookie=None):
+        try:
+            nested = self.nested(force_reload=True)
+        except exception.NotFound:
+            # It's possible the engine handling the create hasn't persisted
+            # the stack to the DB when we first start polling for state
+            return False
+        print "SHDEBUG nested.state=%s" % str(nested.state)
 
-        stack_creator = scheduler.TaskRunner(self._nested.stack_task,
-                                             action=action)
-        stack_creator.start(timeout=self._nested.timeout_secs())
-        return stack_creator
+        if nested.action != resource.Resource.CREATE:
+            raise resource.ResourceUnknownStatus(
+                resource_status=nested.action,
+                result=_('Stack not in CREATE state'))
 
-    def check_create_complete(self, stack_creator):
-        if stack_creator is None:
+        print "SHDEBUG status=%s" % nested.status
+        if nested.status == resource.Resource.IN_PROGRESS:
+            return False
+        elif nested.status == resource.Resource.COMPLETE:
             return True
-        done = stack_creator.step()
-        if done:
-            if self._nested.state != (self._nested.CREATE,
-                                      self._nested.COMPLETE):
-                raise exception.Error(self._nested.status_reason)
-
-        return done
+        elif nested.status == resource.Resource.FAILED:
+            print "SHDEBUG FAILED"
+            raise resource.ResourceInError(
+                resource_status=nested.status,
+                status_reason=_("Create failed, reason: %(reason)s") % {
+                    'reason': nested.status_reason})
+        else:
+            raise resource.ResourceUnknownStatus(
+                resource_status=nested.status,
+                result=_('Stack unknown status'))
 
     def update_with_template(self, child_template, user_params,
                              timeout_mins=None):
